@@ -1,5 +1,3 @@
-# .github
-
 ![Grokipedia](https://github.com/user-attachments/assets/d5384958-e7c7-47f3-8896-8455e73080d9)
 
 Grokipedia is a modern, community-driven knowledge platform designed to provide reliable, comprehensive information through an intuitive and elegant interface. Built as a forward-thinking alternative to traditional encyclopedias, Grokipedia empowers users to explore, preserve, and expand human knowledge in a way that prioritizes openness, impartiality, and accessibility for all.
