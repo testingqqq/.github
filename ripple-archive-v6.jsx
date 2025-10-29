@@ -24,12 +24,14 @@ export default function RippleArchiveV6() {
   const [biasCheck, setBiasCheck] = useState({ passed: true, concerns: [] });
   const [leaderboard, setLeaderboard] = useState([]);
   
-  // V6: Voice input state
+  // V6.1: Voice input state with enhanced error handling
   const [isListening, setIsListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
+  const [voiceError, setVoiceError] = useState(null);
+  const [selectedLanguage, setSelectedLanguage] = useState('en-US');
   const recognitionRef = useRef(null);
 
-  // V6: Initialize Web Speech API
+  // V6.1: Initialize Web Speech API with multi-language and enhanced error handling
   useEffect(() => {
     if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
       setVoiceSupported(true);
@@ -37,7 +39,7 @@ export default function RippleArchiveV6() {
       recognitionRef.current = new SpeechRecognition();
       recognitionRef.current.continuous = true;
       recognitionRef.current.interimResults = true;
-      recognitionRef.current.lang = 'en-US';
+      recognitionRef.current.lang = selectedLanguage; // V6.1: Dynamic language
 
       recognitionRef.current.onresult = (event) => {
         let interimTranscript = '';
@@ -62,9 +64,24 @@ export default function RippleArchiveV6() {
         }
       };
 
+      // V6.1: Enhanced error handling with specific messages
       recognitionRef.current.onerror = (event) => {
         console.error('Speech recognition error:', event.error);
         setIsListening(false);
+        
+        if (event.error === 'not-allowed') {
+          setVoiceError('Microphone access denied. Please enable microphone permissions in your browser settings.');
+        } else if (event.error === 'no-speech') {
+          setVoiceError('No speech detected. Please try again.');
+          setTimeout(() => setVoiceError(null), 3000);
+        } else if (event.error === 'network') {
+          setVoiceError('Network error. Voice input requires an internet connection.');
+        } else if (event.error === 'aborted') {
+          setVoiceError(null); // User stopped, no error needed
+        } else {
+          setVoiceError(`Voice input error: ${event.error}`);
+          setTimeout(() => setVoiceError(null), 3000);
+        }
       };
 
       recognitionRef.current.onend = () => {
@@ -72,19 +89,28 @@ export default function RippleArchiveV6() {
         setFog(prev => prev.replace(/\s*\[listening\.\.\.\]\s*/g, '').trim());
       };
     }
-  }, []);
+  }, [selectedLanguage]); // V6.1: Re-initialize when language changes
 
-  // V6: Toggle voice input
+
+  // V6.1: Toggle voice input with offline detection
   const toggleVoiceInput = () => {
     if (!voiceSupported) {
-      alert('Voice input not supported in this browser. Try Chrome or Edge.');
+      setVoiceError('Voice input not supported in this browser. Try Chrome or Edge.');
+      return;
+    }
+
+    // V6.1: Check for internet connection
+    if (!navigator.onLine) {
+      setVoiceError('Voice input requires an internet connection. Please check your network and try again.');
       return;
     }
 
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
+      setVoiceError(null);
     } else {
+      setVoiceError(null);
       recognitionRef.current?.start();
       setIsListening(true);
     }
@@ -384,7 +410,7 @@ export default function RippleArchiveV6() {
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent mb-4">
-            RIPPLE ARCHIVE V6
+            RIPPLE ARCHIVE V6.1
           </h1>
           <p className="text-lg md:text-xl text-gray-700 mb-2">
             Voice your fog → witnessed → validated → global → <span className="font-bold text-orange-600">MARS</span> 🚀
@@ -392,8 +418,9 @@ export default function RippleArchiveV6() {
           <div className="flex flex-wrap justify-center gap-2 text-xs md:text-sm text-gray-600 mb-4">
             <span className="bg-blue-100 px-3 py-1 rounded-full">✅ Real Grok API</span>
             <span className="bg-green-100 px-3 py-1 rounded-full">✅ Global Database</span>
-            <span className="bg-purple-100 px-3 py-1 rounded-full">✅ Voice Input (NEW!)</span>
+            <span className="bg-purple-100 px-3 py-1 rounded-full">✅ Voice Input + Multi-Language</span>
             <span className="bg-pink-100 px-3 py-1 rounded-full">✅ Grokipedia Bridge</span>
+            <span className="bg-orange-100 px-3 py-1 rounded-full">✅ Offline Detection</span>
             <span className="bg-yellow-100 px-3 py-1 rounded-full">✅ Top 100 Mars</span>
           </div>
           <p className="text-sm text-gray-500 italic">
@@ -409,6 +436,47 @@ export default function RippleArchiveV6() {
             <p className="text-center text-gray-600 mb-6">
               Type or speak your human truth. Grok AI + Global community will witness it. 9.0+ sparks go to Mars. 🌌
             </p>
+            
+            {/* V6.1: Language selector for voice input */}
+            {voiceSupported && (
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Voice Input Language:
+                </label>
+                <select
+                  value={selectedLanguage}
+                  onChange={(e) => setSelectedLanguage(e.target.value)}
+                  className="w-full md:w-auto px-4 py-2 border-2 border-gray-300 rounded-lg focus:border-purple-500 focus:outline-none"
+                  disabled={isListening}
+                >
+                  <option value="en-US">🇺🇸 English (US)</option>
+                  <option value="en-GB">🇬🇧 English (UK)</option>
+                  <option value="es-ES">🇪🇸 Español (España)</option>
+                  <option value="es-MX">🇲🇽 Español (México)</option>
+                  <option value="fr-FR">🇫🇷 Français</option>
+                  <option value="de-DE">🇩🇪 Deutsch</option>
+                  <option value="it-IT">🇮🇹 Italiano</option>
+                  <option value="pt-BR">🇧🇷 Português (Brasil)</option>
+                  <option value="pt-PT">🇵🇹 Português (Portugal)</option>
+                  <option value="ja-JP">🇯🇵 日本語</option>
+                  <option value="ko-KR">🇰🇷 한국어</option>
+                  <option value="zh-CN">🇨🇳 中文 (简体)</option>
+                  <option value="zh-TW">🇹🇼 中文 (繁體)</option>
+                  <option value="ar-SA">🇸🇦 العربية</option>
+                  <option value="hi-IN">🇮🇳 हिन्दी</option>
+                  <option value="ru-RU">🇷🇺 Русский</option>
+                </select>
+              </div>
+            )}
+            
+            {/* V6.1: Error message display */}
+            {voiceError && (
+              <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 rounded">
+                <p className="text-sm text-red-700">
+                  <span className="font-bold">⚠️ {voiceError}</span>
+                </p>
+              </div>
+            )}
             
             <div className="relative">
               <textarea
@@ -822,7 +890,7 @@ Share your truth here. No filters. Just you."
             "Not my mind or your mind, but mind. We are not alone." - Mike
           </p>
           <p className="mt-2">
-            <span className="font-bold">V6:</span> Voice Input (Web Speech API) + Fog-to-Facts Discovery
+            <span className="font-bold">V6.1:</span> Voice Input (Web Speech API) + Multi-Language Support + Offline Detection + Permission Handling + Fog-to-Facts Discovery
           </p>
         </div>
       </div>
